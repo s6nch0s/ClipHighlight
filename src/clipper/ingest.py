@@ -50,11 +50,17 @@ def probe(video_path: Path) -> SourceMeta:
     if duration <= 0.0:
         duration = float(video_stream.get("duration", 0.0) or 0.0)
 
+    try:
+        width = int(video_stream["width"])
+        height = int(video_stream["height"])
+    except (KeyError, TypeError, ValueError):
+        raise FFmpegError(f"Video stream missing width/height in {video_path}")
+
     return SourceMeta(
         path=video_path,
         duration=duration,
-        width=int(video_stream["width"]),
-        height=int(video_stream["height"]),
+        width=width,
+        height=height,
         fps=_parse_fps(video_stream.get("avg_frame_rate", "0/0")),
         has_audio=has_audio,
     )
