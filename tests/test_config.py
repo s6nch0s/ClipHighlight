@@ -69,3 +69,21 @@ def test_min_greater_than_max_raises(tmp_path):
     bad = VALID.replace("min_len: 30", "min_len: 90")
     with pytest.raises(ConfigError):
         load_config(_write(tmp_path, bad))
+
+
+@pytest.mark.parametrize(
+    "old, new",
+    [
+        ("crop_style: blur_bars", "crop_style: diagonal"),
+        ("position: top", "position: center"),
+        ("max_clips: 5", "max_clips: 0"),
+        ("min_len: 30", "min_len: 5"),
+        ("audio_weight: 0.6", "audio_weight: 1.5"),
+        ("motion_weight: 0.4", "motion_weight: -0.1"),
+        ("max_clips: 5", "max_clips: abc"),
+    ],
+)
+def test_invalid_config_raises(tmp_path, old, new):
+    bad = VALID.replace(old, new)
+    with pytest.raises(ConfigError):
+        load_config(_write(tmp_path, bad))

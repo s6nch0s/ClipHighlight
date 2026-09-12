@@ -100,51 +100,55 @@ def load_config(path: Path) -> Config:
     analyze_raw = _require(raw, "analyze", "root")
     encode_raw = _require(raw, "encode", "root")
 
-    clips = ClipsConfig(
-        max_clips=int(_require(clips_raw, "max_clips", "clips")),
-        min_len=float(_require(clips_raw, "min_len", "clips")),
-        max_len=float(_require(clips_raw, "max_len", "clips")),
-    )
-    frame = FrameConfig(
-        width=int(_require(frame_raw, "width", "frame")),
-        height=int(_require(frame_raw, "height", "frame")),
-        crop_style=str(_require(frame_raw, "crop_style", "frame")),
-        blur_strength=int(_require(frame_raw, "blur_strength", "frame")),
-    )
-    logo = LogoConfig(
-        path=_opt_path(logo_raw.get("path")),
-        corner=str(_require(logo_raw, "corner", "logo")),
-        scale=float(_require(logo_raw, "scale", "logo")),
-        margin=int(_require(logo_raw, "margin", "logo")),
-    )
-    text = OnScreenTextConfig(
-        text=str(_require(text_raw, "text", "on_screen_text")),
-        font=_opt_path(text_raw.get("font")),
-        font_size=int(_require(text_raw, "font_size", "on_screen_text")),
-        color=str(_require(text_raw, "color", "on_screen_text")),
-        position=str(_require(text_raw, "position", "on_screen_text")),
-        margin=int(_require(text_raw, "margin", "on_screen_text")),
-    )
-    analyze = AnalyzeConfig(
-        detector=str(_require(analyze_raw, "detector", "analyze")),
-        audio_weight=float(_require(analyze_raw, "audio_weight", "analyze")),
-        motion_weight=float(_require(analyze_raw, "motion_weight", "analyze")),
-    )
-    encode = EncodeConfig(
-        crf=int(_require(encode_raw, "crf", "encode")),
-        preset=str(_require(encode_raw, "preset", "encode")),
-    )
+    try:
+        clips = ClipsConfig(
+            max_clips=int(_require(clips_raw, "max_clips", "clips")),
+            min_len=float(_require(clips_raw, "min_len", "clips")),
+            max_len=float(_require(clips_raw, "max_len", "clips")),
+        )
+        frame = FrameConfig(
+            width=int(_require(frame_raw, "width", "frame")),
+            height=int(_require(frame_raw, "height", "frame")),
+            crop_style=str(_require(frame_raw, "crop_style", "frame")),
+            blur_strength=int(_require(frame_raw, "blur_strength", "frame")),
+        )
+        logo = LogoConfig(
+            path=_opt_path(logo_raw.get("path")),
+            corner=str(_require(logo_raw, "corner", "logo")),
+            scale=float(_require(logo_raw, "scale", "logo")),
+            margin=int(_require(logo_raw, "margin", "logo")),
+        )
+        text = OnScreenTextConfig(
+            text=str(_require(text_raw, "text", "on_screen_text")),
+            font=_opt_path(text_raw.get("font")),
+            font_size=int(_require(text_raw, "font_size", "on_screen_text")),
+            color=str(_require(text_raw, "color", "on_screen_text")),
+            position=str(_require(text_raw, "position", "on_screen_text")),
+            margin=int(_require(text_raw, "margin", "on_screen_text")),
+        )
+        analyze = AnalyzeConfig(
+            detector=str(_require(analyze_raw, "detector", "analyze")),
+            audio_weight=float(_require(analyze_raw, "audio_weight", "analyze")),
+            motion_weight=float(_require(analyze_raw, "motion_weight", "analyze")),
+        )
+        encode = EncodeConfig(
+            crf=int(_require(encode_raw, "crf", "encode")),
+            preset=str(_require(encode_raw, "preset", "encode")),
+        )
 
-    cfg = Config(
-        input=Path(str(_require(raw, "input", "root"))),
-        output_dir=Path(str(_require(raw, "output_dir", "root"))),
-        clips=clips,
-        frame=frame,
-        logo=logo,
-        on_screen_text=text,
-        analyze=analyze,
-        encode=encode,
-    )
+        cfg = Config(
+            input=Path(str(_require(raw, "input", "root"))),
+            output_dir=Path(str(_require(raw, "output_dir", "root"))),
+            clips=clips,
+            frame=frame,
+            logo=logo,
+            on_screen_text=text,
+            analyze=analyze,
+            encode=encode,
+        )
+    except (ValueError, TypeError) as exc:
+        raise ConfigError(f"Invalid config value: {exc}") from exc
+
     _validate(cfg)
     return cfg
 
