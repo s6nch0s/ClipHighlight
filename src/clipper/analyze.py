@@ -12,6 +12,15 @@ from .ingest import SourceMeta
 SAMPLE_STEP = 1.0
 
 
+def _escape_lavfi_path(path) -> str:
+    # lavfi movie/amovie filename arg: normalize to '/' then escape graph metacharacters
+    # (notably the Windows drive-colon, which otherwise splits filter options).
+    s = str(path).replace("\\", "/")
+    for ch in (":", "'", ",", "[", "]", ";"):
+        s = s.replace(ch, "\\" + ch)
+    return s
+
+
 def combine_scores(audio: float, motion: float, audio_weight: float, motion_weight: float) -> float:
     total = audio_weight + motion_weight
     if total <= 0.0:
@@ -59,7 +68,7 @@ class HeuristicDetector:
         # Per-second RMS via astats, one value per frame; bucket into SAMPLE_STEP bins.
         proc = run([
             "ffprobe", "-v", "error", "-f", "lavfi",
-            "-i", f"amovie={source.path.as_posix()},astats=metadata=1:reset=1",
+            "-i", f"amovie={_escape_lavfi_path(source.path)},astats=metadata=1:reset=1",
             "-show_entries", "frame=pkt_pts_time:frame_tags=lavfi.astats.Overall.RMS_level",
             "-print_format", "json",
         ])
@@ -83,7 +92,7 @@ class HeuristicDetector:
     def _motion_energy(self, source: SourceMeta, times: list[float]) -> list[float]:
         proc = run([
             "ffprobe", "-v", "error", "-f", "lavfi",
-            "-i", f"movie={source.path.as_posix()},select=gt(scene\\,0)",
+            "-i", f"movie={_escape_lavfi_path(source.path)},select=gt(scene\\,0)",
             "-show_entries", "frame=pkt_pts_time:frame_tags=lavfi.scene_score",
             "-print_format", "json",
         ])

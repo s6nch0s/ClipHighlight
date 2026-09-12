@@ -6,6 +6,7 @@ import pytest
 from clipper.analyze import (
     SAMPLE_STEP,
     HeuristicDetector,
+    _escape_lavfi_path,
     analyze,
     combine_scores,
     get_detector,
@@ -48,6 +49,21 @@ def test_get_detector_ai_not_implemented():
 def test_get_detector_unknown():
     with pytest.raises(ConfigError):
         get_detector("bogus")
+
+
+def test_escape_lavfi_path_windows_drive_colon():
+    result = _escape_lavfi_path(Path("C:/Users/a/clip.mp4"))
+    assert "C\\:/Users/a/clip.mp4" in result
+
+
+def test_escape_lavfi_path_windows_backslashes():
+    result = _escape_lavfi_path("C:\\vids\\clip.mp4")
+    assert "C\\:/vids/clip.mp4" in result
+
+
+def test_escape_lavfi_path_comma():
+    result = _escape_lavfi_path("/tmp/a,b/clip.mp4")
+    assert "\\," in result
 
 
 @pytest.mark.integration
