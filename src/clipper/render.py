@@ -23,9 +23,12 @@ def escape_drawtext_text(text: str) -> str:
 
 
 def escape_filter_path(path: Path) -> str:
-    # FFmpeg filter strings treat ':' as an option separator and '\' as escape.
+    # Used inside single-quoted FFmpeg filter option values, e.g. fontfile='...'.
+    # Within single quotes only the quote char is special, so a ':' (Windows drive
+    # path like C:/f.ttf) must NOT be escaped. Normalize separators to '/' and
+    # escape any literal single quote with the close/reopen pattern.
     s = str(path).replace("\\", "/")
-    return s.replace(":", "\\:")
+    return s.replace("'", "'\\''")
 
 
 def _drawtext(cfg: Config) -> str:
