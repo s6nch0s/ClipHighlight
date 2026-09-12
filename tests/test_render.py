@@ -21,11 +21,11 @@ def _cfg(tmp_path, text=VALID):
     return load_config(p)
 
 
-def test_escape_drawtext_escapes_colon_and_quote():
-    out = escape_drawtext_text("Play: it's 100%")
-    assert "\\:" in out
-    assert "\\'" in out
-    assert "\\%" in out
+def test_escape_drawtext_produces_ffmpeg_valid_quoting():
+    out = escape_drawtext_text("It's 100%")
+    assert "'\\''" in out           # apostrophe uses close/reopen pattern, not backslash-quote
+    assert "\\%" in out             # percent escaped for drawtext expansion
+    assert "\\'" not in out.replace("'\\''", "")  # no bare backslash-quote escaping remains
 
 
 def test_escape_filter_path_handles_windows_drive():
@@ -48,6 +48,9 @@ def test_render_command_includes_encode_settings(tmp_path):
     assert "libx264" in cmd
     assert "+faststart" in cmd
     assert "-ss" in cmd and "-to" in cmd
+    assert "-map" in cmd
+    assert "0:a?" in cmd
+    assert "aac" in cmd
 
 
 @pytest.mark.integration

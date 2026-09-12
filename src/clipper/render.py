@@ -17,8 +17,8 @@ _CORNER_POS = {
 
 def escape_drawtext_text(text: str) -> str:
     out = text.replace("\\", "\\\\")
-    for ch in (":", "'", "%"):
-        out = out.replace(ch, "\\" + ch)
+    out = out.replace("%", "\\%")
+    out = out.replace("'", "'\\''")
     return out
 
 
