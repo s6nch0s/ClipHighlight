@@ -11,6 +11,9 @@ dependencies = ["PyYAML>=6.0"]
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
 
+[project.scripts]
+mw4-clipper = "clipper.cli:main"
+
 [tool.setuptools.packages.find]
 where = ["src"]
 
