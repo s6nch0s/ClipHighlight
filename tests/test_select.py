@@ -57,3 +57,15 @@ def test_short_video_yields_single_floor_window():
     result = select_windows(pts, step=1.0, video_duration=15.0, min_len=30, max_len=60, max_clips=5)
     assert len(result) == 1
     assert (result[0]["end"] - result[0]["start"]) >= HARD_FLOOR
+
+
+def test_secondary_highlight_not_starved():
+    pts = _points(1.0, 600.0, [(0.0, 120.0)])
+    # add a weaker secondary highlight that a global-mean gate would starve
+    for p in pts:
+        if 300.0 <= p["t"] < 360.0:
+            p["combined"] = 0.2
+    result = select_windows(pts, step=1.0, video_duration=600.0, min_len=30, max_len=60, max_clips=3)
+    # 120s peak fills two 60s windows, plus the secondary -> 3 clips (secondary kept)
+    assert len(result) == 3
+    assert any(w["start"] <= 330.0 < w["end"] for w in result)
