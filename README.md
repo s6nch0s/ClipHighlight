@@ -16,7 +16,8 @@ clipping campaign.
 ```bash
 python -m venv .venv
 # Windows: .venv\Scripts\activate   macOS/Linux: source .venv/bin/activate
-pip install -e .
+pip install -e .          # runtime only
+pip install -e ".[dev]"   # also installs pytest for running the tests below
 ```
 
 ## Configure
