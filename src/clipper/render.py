@@ -48,7 +48,57 @@ def _drawtext(cfg: Config) -> str:
     return "drawtext=" + ":".join(parts)
 
 
-def build_filtergraph(cfg: Config, *, use_logo: bool) -> str:
+def _grade_filter(cfg: Config) -> str:
+    # Colour pop + vignette on the gameplay composite, applied BEFORE the logo and
+    # text overlays so branding colours stay accurate and legible.
+    v = cfg.vfx
+    if not v.enabled:
+        return ""
+    parts = []
+    if v.saturation != 1.0 or v.contrast != 1.0:
+        parts.append(f"eq=saturation={v.saturation:g}:contrast={v.contrast:g}")
+    if v.vignette:
+        parts.append("vignette")
+    return ",".join(parts)
+
+
+def _zoom_filter(cfg: Config, duration: float | None, fps: float | None) -> str:
+    # Slow centred push-in on the gameplay composite, applied BEFORE overlays so the
+    # logo and text stay rock-steady while the footage pushes in.
+    v = cfg.vfx
+    if not v.enabled or v.zoom <= 0 or not duration or not fps:
+        return ""
+    w, h = cfg.frame.width, cfg.frame.height
+    zmax = 1.0 + v.zoom
+    total = max(int(round(duration * fps)), 1)
+    inc = (zmax - 1.0) / total
+    # Pre-scale gives the crop-in resolution headroom (no upscaling blur) and tames
+    # zoompan jitter; commas inside the quoted expressions are shielded from the
+    # filtergraph parser by the single quotes.
+    pw = (int(w * 3 // 2)) // 2 * 2
+    ph = (int(h * 3 // 2)) // 2 * 2
+    return (
+        f"scale={pw}:{ph},"
+        f"zoompan=z='min(zoom+{inc:.6f},{zmax:.4f})':d=1:"
+        f"x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':fps={fps:g}:s={w}x{h}"
+    )
+
+
+def _fade_filter(cfg: Config, duration: float | None) -> str:
+    v = cfg.vfx
+    if not v.enabled or v.fade <= 0 or not duration:
+        return ""
+    out_st = max(duration - v.fade, 0.0)
+    return f"fade=t=in:st=0:d={v.fade:g},fade=t=out:st={out_st:.3f}:d={v.fade:g}"
+
+
+def build_filtergraph(
+    cfg: Config,
+    *,
+    use_logo: bool,
+    duration: float | None = None,
+    fps: float | None = None,
+) -> str:
     w, h = cfg.frame.width, cfg.frame.height
     blur = cfg.frame.blur_strength
     steps = [
@@ -59,6 +109,14 @@ def build_filtergraph(cfg: Config, *, use_logo: bool) -> str:
         "[bgb][fgs]overlay=(W-w)/2:(H-h)/2[framed]",
     ]
     current = "framed"
+    grade = _grade_filter(cfg)
+    if grade:
+        steps.append(f"[{current}]{grade}[graded]")
+        current = "graded"
+    zoom = _zoom_filter(cfg, duration, fps)
+    if zoom:
+        steps.append(f"[{current}]{zoom}[zoomed]")
+        current = "zoomed"
     if use_logo:
         x_expr, y_expr = _CORNER_POS[cfg.logo.corner]
         m = cfg.logo.margin
@@ -69,7 +127,9 @@ def build_filtergraph(cfg: Config, *, use_logo: bool) -> str:
             f"{x_expr.format(m=m)}:{y_expr.format(m=m)}[logo_ov]"
         )
         current = "logo_ov"
-    steps.append(f"[{current}]{_drawtext(cfg)}[v]")
+    fade = _fade_filter(cfg, duration)
+    tail = f"{_drawtext(cfg)},{fade}" if fade else _drawtext(cfg)
+    steps.append(f"[{current}]{tail}[v]")
     return ";".join(steps)
 
 
@@ -81,12 +141,14 @@ def build_render_command(
     out_path: Path,
     *,
     use_logo: bool,
+    fps: float | None = None,
 ) -> list[str]:
     args = ["ffmpeg", "-y", "-ss", f"{start:.3f}", "-to", f"{end:.3f}", "-i", str(source)]
     if use_logo and cfg.logo.path is not None:
         args += ["-i", str(cfg.logo.path)]
     args += [
-        "-filter_complex", build_filtergraph(cfg, use_logo=use_logo),
+        "-filter_complex",
+        build_filtergraph(cfg, use_logo=use_logo, duration=end - start, fps=fps),
         "-map", "[v]",
         "-map", "0:a?",
         "-c:v", "libx264",
@@ -110,6 +172,6 @@ def render_all(cfg: Config, source: SourceMeta, selection: list[dict]) -> list[P
     out_paths: list[Path] = []
     for item in selection:
         out_path = cfg.output_dir / f"clip_{item['index']:02d}.mp4"
-        run(build_render_command(cfg, source.path, item["start"], item["end"], out_path, use_logo=use_logo))
+        run(build_render_command(cfg, source.path, item["start"], item["end"], out_path, use_logo=use_logo, fps=source.fps))
         out_paths.append(out_path)
     return out_paths

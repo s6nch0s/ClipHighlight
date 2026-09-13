@@ -87,3 +87,30 @@ def test_invalid_config_raises(tmp_path, old, new):
     bad = VALID.replace(old, new)
     with pytest.raises(ConfigError):
         load_config(_write(tmp_path, bad))
+
+
+def test_vfx_defaults_when_section_absent(tmp_path):
+    cfg = load_config(_write(tmp_path, VALID))
+    assert cfg.vfx.enabled is True
+    assert cfg.vfx.zoom == 0.08
+    assert cfg.vfx.fade == 0.4
+    assert cfg.vfx.vignette is True
+
+
+def test_vfx_section_overrides_and_disable(tmp_path):
+    text = VALID + "\nvfx:\n  enabled: false\n  zoom: 0.0\n  fade: 0.0\n  saturation: 1.0\n  contrast: 1.0\n  vignette: false\n"
+    cfg = load_config(_write(tmp_path, text))
+    assert cfg.vfx.enabled is False
+    assert cfg.vfx.zoom == 0.0
+    assert cfg.vfx.vignette is False
+
+
+@pytest.mark.parametrize(
+    "line",
+    ["  zoom: 1.5", "  fade: -1", "  saturation: -0.2"],
+)
+def test_invalid_vfx_raises(tmp_path, line):
+    text = VALID + f"\nvfx:\n{line}\n"
+    with pytest.raises(ConfigError):
+        load_config(_write(tmp_path, text))
+

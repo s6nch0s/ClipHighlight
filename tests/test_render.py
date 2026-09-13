@@ -43,6 +43,40 @@ def test_filtergraph_targets_1080x1920_and_final_label():
     assert fg.strip().endswith("[v]")
 
 
+def test_filtergraph_applies_vfx_when_enabled():
+    cfg = _cfg_no_font()  # vfx defaults on
+    fg = build_filtergraph(cfg, use_logo=False, duration=20.0, fps=30.0)
+    assert "vignette" in fg          # colour pop + vignette grade
+    assert "eq=saturation" in fg
+    assert "zoompan" in fg           # punch-in zoom
+    assert "fade=t=in" in fg and "fade=t=out" in fg
+    assert fg.strip().endswith("[v]")
+
+
+def test_filtergraph_omits_timed_vfx_without_duration_or_fps():
+    cfg = _cfg_no_font()
+    fg = build_filtergraph(cfg, use_logo=False)  # no duration/fps
+    assert "zoompan" not in fg
+    assert "fade=t=" not in fg
+
+
+def test_filtergraph_disabled_vfx_is_raw():
+    cfg = _cfg_no_font(extra="\nvfx:\n  enabled: false\n")
+    fg = build_filtergraph(cfg, use_logo=False, duration=20.0, fps=30.0)
+    assert "zoompan" not in fg
+    assert "vignette" not in fg
+    assert "fade=t=" not in fg
+
+
+def test_render_command_threads_fps_into_zoom(tmp_path):
+    cfg = _cfg(tmp_path)
+    cmd = build_render_command(cfg, Path("in.mp4"), 5.0, 25.0, tmp_path / "clip_01.mp4", use_logo=False, fps=30.0)
+    fg = cmd[cmd.index("-filter_complex") + 1]
+    assert "zoompan" in fg
+    assert "fps=30" in fg
+
+
+
 def test_render_command_includes_encode_settings(tmp_path):
     cfg = _cfg(tmp_path)
     cmd = build_render_command(cfg, Path("in.mp4"), 5.0, 20.0, tmp_path / "clip_01.mp4", use_logo=False)
@@ -78,10 +112,10 @@ def test_render_all_produces_vertical_clip(tmp_path):
     assert out_meta.has_audio is True
 
 
-def _cfg_no_font():
+def _cfg_no_font(extra: str = ""):
     import tempfile
     d = Path(tempfile.mkdtemp())
-    text = VALID.replace('font: "./assets/fonts/font.ttf"', "font: null")
+    text = VALID.replace('font: "./assets/fonts/font.ttf"', "font: null") + extra
     p = d / "config.yaml"
     p.write_text(text, encoding="utf-8")
     return load_config(p)

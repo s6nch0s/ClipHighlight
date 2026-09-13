@@ -59,6 +59,16 @@ class EncodeConfig:
 
 
 @dataclass
+class VfxConfig:
+    enabled: bool
+    zoom: float          # extra push-in over the clip, e.g. 0.08 = up to 108%
+    fade: float          # fade in/out duration in seconds (0 disables)
+    saturation: float    # 1.0 = unchanged
+    contrast: float      # 1.0 = unchanged
+    vignette: bool
+
+
+@dataclass
 class Config:
     input: Path
     output_dir: Path
@@ -68,6 +78,7 @@ class Config:
     on_screen_text: OnScreenTextConfig
     analyze: AnalyzeConfig
     encode: EncodeConfig
+    vfx: VfxConfig
 
 
 def _require(mapping: dict, key: str, section: str):
@@ -80,6 +91,20 @@ def _opt_path(value) -> Path | None:
     if value in (None, ""):
         return None
     return Path(str(value))
+
+
+def _vfx_config(raw: dict) -> VfxConfig:
+    v = raw.get("vfx") or {}
+    if not isinstance(v, dict):
+        raise ConfigError("vfx must be a mapping")
+    return VfxConfig(
+        enabled=bool(v.get("enabled", True)),
+        zoom=float(v.get("zoom", 0.08)),
+        fade=float(v.get("fade", 0.4)),
+        saturation=float(v.get("saturation", 1.18)),
+        contrast=float(v.get("contrast", 1.06)),
+        vignette=bool(v.get("vignette", True)),
+    )
 
 
 def load_config(path: Path) -> Config:
@@ -135,6 +160,7 @@ def load_config(path: Path) -> Config:
             crf=int(_require(encode_raw, "crf", "encode")),
             preset=str(_require(encode_raw, "preset", "encode")),
         )
+        vfx = _vfx_config(raw)
 
         cfg = Config(
             input=Path(str(_require(raw, "input", "root"))),
@@ -145,6 +171,7 @@ def load_config(path: Path) -> Config:
             on_screen_text=text,
             analyze=analyze,
             encode=encode,
+            vfx=vfx,
         )
     except (ValueError, TypeError) as exc:
         raise ConfigError(f"Invalid config value: {exc}") from exc
@@ -170,3 +197,9 @@ def _validate(cfg: Config) -> None:
         raise ConfigError("analyze.audio_weight must be in [0, 1]")
     if not (0.0 <= cfg.analyze.motion_weight <= 1.0):
         raise ConfigError("analyze.motion_weight must be in [0, 1]")
+    if not (0.0 <= cfg.vfx.zoom <= 1.0):
+        raise ConfigError("vfx.zoom must be in [0, 1]")
+    if cfg.vfx.fade < 0.0:
+        raise ConfigError("vfx.fade must be >= 0")
+    if cfg.vfx.saturation < 0.0 or cfg.vfx.contrast < 0.0:
+        raise ConfigError("vfx.saturation and vfx.contrast must be >= 0")
