@@ -53,6 +53,7 @@ def test_get_detector_unknown():
 
 def test_escape_lavfi_path_windows_drive_colon():
     result = _escape_lavfi_path(Path("C:/Users/a/clip.mp4"))
+    assert result.startswith("'") and result.endswith("'")
     assert "C\\:/Users/a/clip.mp4" in result
 
 

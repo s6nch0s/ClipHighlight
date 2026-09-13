@@ -29,11 +29,9 @@ def test_escape_drawtext_produces_ffmpeg_valid_quoting():
 
 
 def test_escape_filter_path_handles_windows_drive():
-    # fontfile is single-quoted in the filtergraph; inside quotes the drive colon
-    # is literal and must be preserved verbatim (escaping it breaks font loading).
+    # Escape the drive colon so FFmpeg does not parse it as a filter option separator.
     out = escape_filter_path(Path("C:/fonts/a.ttf"))
-    assert out == "C:/fonts/a.ttf"
-    assert "\\:" not in out  # colon must not be backslash-escaped inside quotes
+    assert out == "C\\:/fonts/a.ttf"
 
 
 def test_filtergraph_targets_1080x1920_and_final_label():
