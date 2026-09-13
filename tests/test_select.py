@@ -30,9 +30,20 @@ def test_picks_highest_scoring_window_first():
 def test_windows_are_non_overlapping():
     pts = _points(1.0, 240.0, [(20.0, 80.0), (150.0, 210.0)])
     result = select_windows(pts, step=1.0, video_duration=240.0, min_len=30, max_len=60, max_clips=5)
-    assert len(result) == 2
-    a, b = sorted(result, key=lambda w: w["start"])
-    assert a["end"] <= b["start"]
+    ordered = sorted(result, key=lambda w: w["start"])
+    for a, b in zip(ordered, ordered[1:]):
+        assert a["end"] <= b["start"]
+
+
+def test_calm_video_still_fills_up_to_max_clips():
+    # Flat, low-energy footage: the user still wants several clips spread across it,
+    # not a single clip. Fill up to max_clips with non-overlapping windows.
+    pts = _points(1.0, 240.0, [])
+    result = select_windows(pts, step=1.0, video_duration=240.0, min_len=30, max_len=60, max_clips=4)
+    assert len(result) == 4
+    ordered = sorted(result, key=lambda w: w["start"])
+    for a, b in zip(ordered, ordered[1:]):
+        assert a["end"] <= b["start"]
 
 
 def test_respects_max_clips():

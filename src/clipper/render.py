@@ -58,7 +58,7 @@ def _grade_filter(cfg: Config) -> str:
     if v.saturation != 1.0 or v.contrast != 1.0:
         parts.append(f"eq=saturation={v.saturation:g}:contrast={v.contrast:g}")
     if v.vignette:
-        parts.append("vignette")
+        parts.append("vignette=angle=PI/4")
     return ",".join(parts)
 
 

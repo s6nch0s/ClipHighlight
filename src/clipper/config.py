@@ -99,10 +99,10 @@ def _vfx_config(raw: dict) -> VfxConfig:
         raise ConfigError("vfx must be a mapping")
     return VfxConfig(
         enabled=bool(v.get("enabled", True)),
-        zoom=float(v.get("zoom", 0.08)),
+        zoom=float(v.get("zoom", 0.15)),
         fade=float(v.get("fade", 0.4)),
-        saturation=float(v.get("saturation", 1.18)),
-        contrast=float(v.get("contrast", 1.06)),
+        saturation=float(v.get("saturation", 1.30)),
+        contrast=float(v.get("contrast", 1.12)),
         vignette=bool(v.get("vignette", True)),
     )
 

@@ -92,7 +92,7 @@ def test_invalid_config_raises(tmp_path, old, new):
 def test_vfx_defaults_when_section_absent(tmp_path):
     cfg = load_config(_write(tmp_path, VALID))
     assert cfg.vfx.enabled is True
-    assert cfg.vfx.zoom == 0.08
+    assert cfg.vfx.zoom == 0.15
     assert cfg.vfx.fade == 0.4
     assert cfg.vfx.vignette is True
 

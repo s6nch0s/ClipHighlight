@@ -23,28 +23,21 @@ def select_windows(
     # If the whole video is shorter than min_len, allow one floor-length window.
     effective_min = min(min_len, window_len)
 
-    # Noise-floor gate: drop windows sitting at the baseline noise floor, but skip
-    # gating entirely when scores are flat so we never starve secondary highlights.
-    all_scores = [p["combined"] for p in points]
-    floor = min(all_scores) if all_scores else 0.0
-    ceil = max(all_scores) if all_scores else 0.0
-    gate = ceil > floor + 1e-9
-
     candidates = []
     start = 0.0
     last_start = max(0.0, video_duration - window_len)
     while start <= last_start + 1e-9:
         end = min(start + window_len, video_duration)
         if end - start >= max(HARD_FLOOR, effective_min) - 1e-9:
-            score = _mean_score(points, start, end)
-            if not gate or score > floor + 1e-9:
-                candidates.append({
-                    "start": round(start, 3),
-                    "end": round(end, 3),
-                    "score": score,
-                })
+            candidates.append({
+                "start": round(start, 3),
+                "end": round(end, 3),
+                "score": _mean_score(points, start, end),
+            })
         start += step
 
+    # Rank by score so genuine highlights win, then fill up to max_clips with the
+    # best remaining non-overlapping windows — calmer footage still yields clips.
     candidates.sort(key=lambda c: (-c["score"], c["start"]))
 
     chosen: list[dict] = []

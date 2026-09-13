@@ -37,8 +37,8 @@ encode:
 
 vfx:
   enabled: true       # set false for a raw, effect-free render
-  zoom: 0.08          # slow centred push-in (0.08 = up to 108%); 0 disables
+  zoom: 0.15          # slow centred push-in (0.15 = up to 115%); 0 disables
   fade: 0.4           # fade in/out seconds at each clip's ends; 0 disables
-  saturation: 1.18    # colour pop (1.0 = unchanged)
-  contrast: 1.06      # 1.0 = unchanged
-  vignette: true      # soft darkened edges
+  saturation: 1.30    # colour pop (1.0 = unchanged)
+  contrast: 1.12      # 1.0 = unchanged
+  vignette: true      # darkened edges throughout the clip (not just the ends)
