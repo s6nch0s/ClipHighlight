@@ -18,7 +18,7 @@ def _escape_lavfi_path(path) -> str:
     s = str(path).replace("\\", "/")
     for ch in (":", "'", ",", "[", "]", ";"):
         s = s.replace(ch, "\\" + ch)
-    return s
+    return f"'{s}'"
 
 
 def combine_scores(audio: float, motion: float, audio_weight: float, motion_weight: float) -> float:
